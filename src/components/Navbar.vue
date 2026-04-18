@@ -61,6 +61,9 @@ const cartCount = computed(() => cartStore.itemCount)
 const navLinks = [
   { path: '/', label: 'Home' },
   { path: '/shop', label: 'Shop' },
+  { path: '/reviews', label: 'Reviews' },
+  { path: '/returns', label: 'Returns' },
+  { path: '/contact', label: 'Contact' },
   { path: '/account', label: 'Account' },
 ]
 

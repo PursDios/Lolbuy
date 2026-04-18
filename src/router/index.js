@@ -5,6 +5,9 @@ import ProductView from '../views/ProductView.vue'
 import CartView from '../views/CartView.vue'
 import CheckoutView from '../views/CheckoutView.vue'
 import AccountView from '../views/AccountView.vue'
+import ContactView from '../views/ContactView.vue'
+import ReviewsView from '../views/ReviewsView.vue'
+import ReturnsView from '../views/ReturnsView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -15,6 +18,9 @@ const router = createRouter({
     { path: '/cart', component: CartView },
     { path: '/checkout', component: CheckoutView },
     { path: '/account', component: AccountView },
+    { path: '/contact', component: ContactView },
+    { path: '/reviews', component: ReviewsView },
+    { path: '/returns', component: ReturnsView },
   ],
   scrollBehavior() {
     return { top: 0 }
