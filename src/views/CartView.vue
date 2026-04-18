@@ -297,7 +297,7 @@ function applyPromo() {
 
 function handleSneakyToggle(sneaky) {
   if (cartStore.sneakyChecked[sneaky.id]) {
-    // They're trying to uncheck it — show guilt
+    cartStore.setSneaky(sneaky.id, false)
     guiltMessage.value = sneaky.guiltMessage
     guiltEmoji.value = ['😢', '😭', '💔', '🥺', '😩'][Math.floor(Math.random() * 5)]
     pendingSneakyId.value = sneaky.id
