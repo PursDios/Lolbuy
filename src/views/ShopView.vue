@@ -181,10 +181,9 @@ onMounted(() => {
     ease: 'power3.out',
   })
   gsap.from(gridEl.value?.children || [], {
-    y: 40,
-    opacity: 0,
-    duration: 0.5,
-    stagger: 0.07,
+    y: 30,
+    duration: 0.4,
+    stagger: 0.03,
     ease: 'power3.out',
     delay: 0.2,
   })

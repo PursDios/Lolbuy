@@ -315,6 +315,9 @@ function confirmRemoveSneaky() {
 }
 
 function cancelRemoveSneaky() {
+  if (pendingSneakyId.value) {
+    cartStore.setSneaky(pendingSneakyId.value, true)
+  }
   guiltModal.value = false
 }
 </script>

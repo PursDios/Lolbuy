@@ -14,7 +14,7 @@
       <div class="flex flex-wrap justify-center gap-3">
         <span class="tag">⭐ Platinum Member</span>
         <span class="tag tag-cyan">{{ loyaltyPoints.toLocaleString() }} Loyalty Points</span>
-        <span class="tag">🏆 Power Shopper</span>
+        <span class="tag">{{ userBadge }}</span>
       </div>
 
       <!-- Logout button (sad label) -->
@@ -123,16 +123,35 @@
             <span class="tag tag-red text-[10px]">{{ subscriptions.length }} active</span>
           </h3>
           <div class="space-y-3">
-            <div v-for="sub in subscriptions" :key="sub.name" class="flex items-center justify-between p-3 rounded-xl" style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.15)">
+            <div
+              v-for="sub in subscriptions"
+              :key="sub.name"
+              class="flex items-center justify-between p-3 rounded-xl transition-all duration-300"
+              :style="sub.active
+                ? 'background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.15)'
+                : 'background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05)'"
+            >
               <div>
-                <p class="text-sm text-white font-medium">{{ sub.name }}</p>
+                <p class="text-sm font-medium" :class="sub.active ? 'text-white' : 'text-gray-600 line-through'">{{ sub.name }}</p>
                 <p class="text-xs text-gray-500">{{ sub.desc }}</p>
                 <p class="text-[10px] text-gray-700">Signed up: {{ sub.signedUp }}</p>
+                <p v-if="sub.cancelRequested" class="text-[10px] text-yellow-600">Cancellation pending (6–8 weeks)</p>
               </div>
               <div class="text-right">
-                <p class="text-sm font-bold text-red-400">${{ sub.price }}/mo</p>
-                <button @click="tryUnsubscribe(sub)" class="text-[10px] text-gray-700 hover:text-gray-500 transition-colors">
+                <p class="text-sm font-bold" :class="sub.active ? 'text-red-400' : 'text-gray-600'">${{ sub.price }}/mo</p>
+                <button
+                  v-if="!sub.cancelRequested && sub.active"
+                  @click="tryUnsubscribe(sub)"
+                  class="text-[10px] text-gray-700 hover:text-gray-500 transition-colors"
+                >
                   cancel
+                </button>
+                <button
+                  v-else-if="sub.cancelRequested || !sub.active"
+                  @click="resubscribe(sub)"
+                  class="text-[10px] text-green-700 hover:text-green-500 transition-colors"
+                >
+                  renew
                 </button>
               </div>
             </div>
@@ -143,16 +162,17 @@
         <div class="glass rounded-2xl p-5">
           <h3 class="font-bold text-white text-sm mb-4">📬 Communication Preferences</h3>
           <div class="space-y-2">
-            <label v-for="pref in commsPrefs" :key="pref.label" class="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" v-model="pref.checked" class="w-4 h-4 accent-purple-500" />
+            <label v-for="pref in commsPrefs" :key="pref.label" class="flex items-center gap-3 cursor-pointer group">
+              <input type="checkbox" v-model="pref.checked" @change="handlePrefChange(pref)" class="w-4 h-4 accent-purple-500 flex-shrink-0" />
               <div>
                 <p class="text-sm text-white">{{ pref.label }}</p>
                 <p class="text-[10px] text-gray-600">{{ pref.note }}</p>
               </div>
             </label>
           </div>
-          <button class="btn-secondary w-full text-xs py-2 mt-4">Save Preferences</button>
-          <p class="text-[10px] text-gray-700 mt-2">Changes take 6-8 weeks to process. We may send a few things while we process.</p>
+          <button @click="savePrefs" class="btn-secondary w-full text-xs py-2 mt-4">Save Preferences</button>
+          <p v-if="savePrefsMsg" class="text-xs text-yellow-500 mt-2 transition-all">{{ savePrefsMsg }}</p>
+          <p v-else class="text-[10px] text-gray-700 mt-2">Changes take 6-8 weeks to process. We may send a few things while we process.</p>
         </div>
       </div>
     </div>
@@ -190,6 +210,22 @@ const welcomeEl = ref(null)
 const loyaltyPoints = ref(Math.floor(Math.random() * 50000) + 1000)
 const trustScore = ref(Math.floor(Math.random() * 20) + 75)
 
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)] }
+
+const userBadges = [
+  '🏆 Power Shopper',
+  '🧠 Galaxy Brain Buyer',
+  '💸 Certified Impulse Purchaser',
+  '🐋 Whale Detected',
+  '🤡 Premium Member (Involuntary)',
+  '👑 Financially Reckless',
+  '🎰 High Roller',
+  '😤 Reluctant Customer',
+  '🦈 Apex Spender',
+  '🫀 LolBuy Is My Cardio',
+]
+const userBadge = ref(pick(userBadges))
+
 const joinDate = computed(() => {
   const years = Math.floor(Math.random() * 8) + 1
   return `${new Date().getFullYear() - years}`
@@ -208,26 +244,53 @@ const linkedAccounts = computed(() => [
   { icon: '📸', name: 'Instagram (the personal one)', status: 'Connected' },
 ])
 
-const fakeOrders = computed(() => {
-  const statuses = [
-    { label: 'Delivered', cls: 'text-green-400' },
-    { label: 'In Transit (with Gerald)', cls: 'text-yellow-400' },
-    { label: 'Preparing', cls: 'text-blue-400' },
-    { label: 'Lost (Looking)', cls: 'text-red-400' },
-  ]
-  return [
-    { id: 'LB-' + (Math.floor(Math.random() * 900000) + 100000), product: 'NVIDIA RTX 5090 Ti ULTRA MAX', icon: '🖥️', date: '2 days ago', total: '1,899.99', status: 'Delivered', statusClass: 'text-green-400' },
-    { id: 'LB-' + (Math.floor(Math.random() * 900000) + 100000), product: 'HyperX Fury DDR5 64GB Kit', icon: '🧠', date: '1 week ago', total: '249.99', status: 'Delivered', statusClass: 'text-green-400' },
-    { id: 'LB-' + (Math.floor(Math.random() * 900000) + 100000), product: 'Samsung 990 Pro 4TB NVMe', icon: '💾', date: '2 weeks ago', total: '399.99', status: 'Lost (Looking)', statusClass: 'text-red-400' },
-    { id: 'LB-' + (Math.floor(Math.random() * 900000) + 100000), product: 'LolBuy Prime Membership x12', icon: '👑', date: '1 year ago', total: '239.88', status: 'Auto-renewed', statusClass: 'text-yellow-400' },
-  ]
-})
+const orderPool = [
+  { product: 'NVIDIA RTX 5090 Ti ULTRA MAX', icon: '🖥️', total: '1,899.99' },
+  { product: 'HyperX Fury DDR5 64GB Kit', icon: '🧠', total: '249.99' },
+  { product: 'Samsung 990 Pro 4TB NVMe', icon: '💾', total: '399.99' },
+  { product: 'LolBuy Prime Membership x12', icon: '👑', total: '239.88' },
+  { product: 'Corsair RM1000x PSU', icon: '⚡', total: '189.99' },
+  { product: 'AMD Ryzen 9 7950X', icon: '💻', total: '599.99' },
+  { product: 'Noctua NH-D15 Chromax.Black', icon: '🌀', total: '109.99' },
+  { product: 'ASUS ROG Strix B650E', icon: '🔌', total: '349.99' },
+  { product: '3x LolBuy Gift Card (self-purchase)', icon: '🎁', total: '149.97' },
+  { product: 'RGB Mousepad (3m²)', icon: '🖱️', total: '89.99' },
+]
+const orderDates = ['2 days ago', '1 week ago', '2 weeks ago', '1 month ago', '3 months ago', '1 year ago', 'Last Tuesday (Gerald knows)']
+const orderStatuses = [
+  { label: 'Delivered', cls: 'text-green-400' },
+  { label: 'In Transit (with Gerald)', cls: 'text-yellow-400' },
+  { label: 'Preparing', cls: 'text-blue-400' },
+  { label: 'Lost (Looking)', cls: 'text-red-400' },
+  { label: 'Auto-renewed', cls: 'text-yellow-400' },
+  { label: 'Returned (We Refused)', cls: 'text-red-400' },
+  { label: 'Delivered (Neighbour)', cls: 'text-orange-400' },
+]
+
+function generateOrders() {
+  return [...orderPool].sort(() => Math.random() - 0.5).slice(0, 4).map(o => {
+    const s = pick(orderStatuses)
+    return { ...o, id: 'LB-' + (Math.floor(Math.random() * 900000) + 100000), date: pick(orderDates), status: s.label, statusClass: s.cls }
+  })
+}
+
+const fakeOrders = ref(generateOrders())
 
 const subscriptions = ref([
-  { name: 'LolBuy Prime™', desc: 'Access to our website. Basically required.', price: '19.99', signedUp: 'When you browsed the site' },
-  { name: 'LolBuy Insights Newsletter', desc: 'Weekly emails about RAM prices', price: '0.99', signedUp: 'When you hovered over the email field' },
-  { name: 'Extended Warranty Service', desc: 'For things you bought and things you didn\'t', price: '12.99', signedUp: 'Cart page (it was pre-checked)' },
+  { name: 'LolBuy Prime™', desc: 'Access to our website. Basically required.', price: '19.99', signedUp: 'When you browsed the site', active: true, cancelRequested: false },
+  { name: 'LolBuy Insights Newsletter', desc: 'Weekly emails about RAM prices', price: '0.99', signedUp: 'When you hovered over the email field', active: Math.random() > 0.5, cancelRequested: false },
+  { name: 'Extended Warranty Service', desc: 'For things you bought and things you didn\'t', price: '12.99', signedUp: 'Cart page (it was pre-checked)', active: Math.random() > 0.4, cancelRequested: false },
 ])
+
+const bonusPrefs = [
+  { label: 'Telepathic Marketing', note: 'We reach you during REM sleep for maximum retention', checked: true },
+  { label: 'Subconscious Upsell Injections', note: 'Delivered via ambient audio while you watch TV', checked: true },
+  { label: 'Retroactive Email Consent', note: 'Covers emails we already sent before you signed up', checked: true },
+  { label: 'Grief-Based Remarketing', note: 'We pause campaigns for 24h after bad news. Then double them.', checked: true },
+  { label: 'Dream Sponsorship™', note: 'Your dreams are now brought to you by LolBuy', checked: true },
+  { label: 'Ancestral Data Sharing', note: 'Extends consent to direct family members (living and otherwise)', checked: true },
+]
+const bonusPrefIndex = ref(0)
 
 const commsPrefs = ref([
   { label: 'Marketing emails (daily)', note: 'Unchecking this opts you into more emails somehow', checked: true },
@@ -236,6 +299,30 @@ const commsPrefs = ref([
   { label: 'Browser notifications', note: 'You\'ve already accepted these, this is just FYI', checked: true },
   { label: 'Postal mail', note: 'Gerald will deliver these personally', checked: true },
 ])
+
+const savePrefsMsg = ref('')
+
+function handlePrefChange(pref) {
+  if (!pref.checked && bonusPrefIndex.value < bonusPrefs.length) {
+    setTimeout(() => {
+      commsPrefs.value.push({ ...bonusPrefs[bonusPrefIndex.value] })
+      bonusPrefIndex.value++
+    }, 500)
+  }
+}
+
+function savePrefs() {
+  const msgs = [
+    'Saved to /dev/null ✓',
+    'Preferences noted. We\'ll ignore them shortly.',
+    'Saved! Processing begins in 6–8 weeks.',
+    'Your request has been filed under "Eventually".',
+    'Saved! (We also saved your unsaved preferences. Just in case.)',
+    'Done! All options have been re-enabled for legal reasons.',
+  ]
+  savePrefsMsg.value = pick(msgs)
+  setTimeout(() => { savePrefsMsg.value = '' }, 3500)
+}
 
 // Unsubscribe wizard
 const unsubStep = ref(0)
@@ -256,8 +343,17 @@ function tryUnsubscribe(sub) {
   unsubStep.value = 1
 }
 
+function resubscribe(sub) {
+  sub.cancelRequested = false
+  sub.active = true
+}
+
 function unsubNext() {
   if (unsubStep.value >= unsubSteps.length) {
+    if (currentUnsub.value) {
+      currentUnsub.value.cancelRequested = true
+      currentUnsub.value.active = false
+    }
     unsubStep.value = 0
   } else {
     unsubStep.value++
@@ -272,6 +368,8 @@ function rerollUser() {
   userStore.reroll()
   loyaltyPoints.value = Math.floor(Math.random() * 50000) + 1000
   trustScore.value = Math.floor(Math.random() * 20) + 75
+  fakeOrders.value = generateOrders()
+  userBadge.value = pick(userBadges)
 }
 
 onMounted(() => {

@@ -249,46 +249,44 @@
             </div>
           </div>
 
-          <!-- Moving checkbox -->
+          <!-- Terms -->
           <div class="glass rounded-2xl p-5 mb-5 relative overflow-hidden">
             <p class="text-sm text-gray-400 mb-3">
-              Please agree to our <span class="text-neon-purple underline cursor-pointer">Terms of Service</span>,
-              <span class="text-neon-cyan underline cursor-pointer">Privacy Policy</span>,
-              <span class="text-gray-500 underline cursor-pointer">Anti-Terms</span>, and
-              <span class="text-gray-700 text-xs underline cursor-pointer">The Other Document</span>.
+              Please agree to our
+              <span @click="openTermsDoc('tos')" class="text-neon-purple underline cursor-pointer">Terms of Service</span>,
+              <span @click="openTermsDoc('privacy')" class="text-neon-cyan underline cursor-pointer">Privacy Policy</span>,
+              <span @click="openTermsDoc('anti')" class="text-gray-500 underline cursor-pointer">Anti-Terms</span>, and
+              <span @click="openTermsDoc('other')" class="text-gray-700 text-xs underline cursor-pointer">The Other Document</span>.
             </p>
-            <div
-              class="flex items-center gap-3 transition-all duration-300 select-none"
-              :style="{ transform: `translate(${checkboxOffset.x}px, ${checkboxOffset.y}px)` }"
-              @mouseover="moveCheckbox"
-            >
+            <div class="flex items-center gap-3">
               <input
                 type="checkbox"
                 v-model="termsAgreed"
                 class="w-4 h-4 accent-purple-500 cursor-pointer"
-                @click.prevent="termsClickCount++"
               />
               <label class="text-sm text-gray-300 cursor-pointer">
                 I agree to all terms and conditions
-                <span v-if="termsClickCount > 0" class="text-xs text-gray-600">(attempt {{ termsClickCount }})</span>
               </label>
             </div>
-            <p v-if="termsClickCount >= 5" class="text-xs text-green-400 mt-2">
-              Nice persistence! We've noted your 5 attempts and will proceed as if you agreed.
-            </p>
           </div>
 
           <button
             @click="placeOrder"
             class="btn-primary w-full py-4 font-bold text-lg"
-            :class="!termsAgreed && termsClickCount < 5 ? 'opacity-60' : ''"
+            :class="!termsAgreed ? 'opacity-60' : ''"
           >
             Place Order (${{ finalTotal.toFixed(2) }}) 🚀
           </button>
 
-          <button @click="prevStep" class="w-full text-gray-600 hover:text-gray-400 text-sm transition-colors text-center mt-3">
-            ← Back to Payment
-          </button>
+          <div
+            class="transition-all duration-300"
+            :style="{ transform: `translate(${backOffset.x}px, ${backOffset.y}px)` }"
+            @mouseover="moveBack"
+          >
+            <button @click="prevStep" class="w-full text-gray-600 hover:text-gray-400 text-sm transition-colors text-center mt-3">
+              ← Back to Payment
+            </button>
+          </div>
         </div>
 
         <div class="glass rounded-2xl p-5">
@@ -310,6 +308,27 @@
         </div>
       </div>
     </div>
+
+    <!-- Terms modal -->
+    <Transition name="page">
+      <div
+        v-if="termsModal"
+        class="fixed inset-0 z-[200] flex items-center justify-center p-4"
+        style="background: rgba(0,0,0,0.85); backdrop-filter: blur(10px)"
+        @click.self="termsModal = null"
+      >
+        <div class="glass-purple rounded-3xl p-8 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+          <h3 class="text-xl font-black text-white mb-4">{{ termsModal.title }}</h3>
+          <div class="space-y-3 text-sm text-gray-400">
+            <p v-for="(line, i) in termsModal.lines" :key="i">{{ line }}</p>
+          </div>
+          <button @click="termsModal = null; termsAgreed = true" class="btn-primary w-full mt-6 text-sm py-3">
+            I Have Read and Understood Everything (Agree)
+          </button>
+          <p class="text-[10px] text-gray-700 mt-2 text-center">Scrolling to this button constitutes full acceptance.</p>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Step 4: Success -->
     <div v-if="currentStep === 3" class="text-center py-12" ref="successEl">
@@ -360,8 +379,72 @@ const usingDebraCard = ref(false)
 const usingOwnCard = ref(false)
 const debraDeclined = ref(false)
 const termsAgreed = ref(false)
-const termsClickCount = ref(0)
-const checkboxOffset = ref({ x: 0, y: 0 })
+const backOffset = ref({ x: 0, y: 0 })
+const termsModal = ref(null)
+
+const termsDocs = {
+  tos: {
+    title: 'Terms of Service',
+    lines: [
+      'Welcome to LolBuy! By reading this sentence you have agreed to everything.',
+      '1. All purchases are final, including accidental ones, ones made while asleep, and ones made by your cat.',
+      '2. Gerald owns your package until he personally decides to release it. Gerald\'s mood is not our liability.',
+      '3. We reserve the right to add items to your cart at any time for any reason, including vibes.',
+      '4. You waive all rights, including rights you haven\'t heard of yet.',
+      '5. This agreement is binding on your descendants up to and including the fourth generation.',
+      '6. LolBuy\'s interpretation of this document is the only legally valid interpretation.',
+      '7. Prices shown are indicative. Final prices are revealed at the moment of charge.',
+      '8. By using LolBuy you consent to receiving communications via all channels including ones not yet invented.',
+      '9. If you disagree with any part of these terms, that disagreement also constitutes agreement.',
+      'Thank you for your compliance.',
+    ],
+  },
+  privacy: {
+    title: 'Privacy Policy',
+    lines: [
+      'We take your privacy very seriously, which is why we\'ve read all of it carefully.',
+      'What we collect: Everything. This includes data you have not provided yet.',
+      'What we store: Forever. Our servers are underground for a reason.',
+      'Who we share with: Our 247 trusted partners, Gerald\'s cousin Derek, and an unnamed third party we call "The Listener".',
+      'Your right to erasure: Denied (Premium tier required).',
+      'Your right to access your data: Pending. Please allow 6–8 weeks. Then another 6–8 weeks.',
+      'Cookies: Yes. All of them. We have invented new kinds of cookies specifically for your visit.',
+      'Location data: We know where you are. We think that\'s neat.',
+      'We may update this policy at any time. Continued breathing constitutes acceptance of updates.',
+    ],
+  },
+  anti: {
+    title: 'Anti-Terms',
+    lines: [
+      'These are the things LolBuy commits to NOT doing. Please read carefully.',
+      'We will NOT stop emailing you. (Exceptions do not apply.)',
+      'We will NOT forget your data. Forgetting is not in our roadmap.',
+      'We will NOT tell you what "The Other Document" contains.',
+      'We will NOT stop adding Gerald\'s tip. Gerald has a family.',
+      'We will NOT acknowledge this document in any legal dispute.',
+      'We will NOT define what "Anti-Terms" legally means.',
+      'Interestingly, the Anti-Terms supersede the Terms of Service in all cases except the ones where they don\'t.',
+    ],
+  },
+  other: {
+    title: 'The Other Document',
+    lines: [
+      'This document supersedes all other documents, including itself.',
+      '[REDACTED]',
+      '[REDACTED]',
+      'Section 3: The part you should worry about.',
+      '[REDACTED]',
+      '[REDACTED]',
+      'Section 7: Gerald.',
+      '[REDACTED]',
+      'By viewing this document you have accepted its terms. The terms are classified.',
+      '[REDACTED]',
+      'This document was last updated: Always.',
+      'Word count: [REDACTED]',
+      'If you can read this, it\'s already too late.',
+    ],
+  },
+}
 const successEl = ref(null)
 const orderId = ref(Math.floor(Math.random() * 900000) + 100000)
 
@@ -419,19 +502,22 @@ function declineDebra() {
   debraDeclined.value = true
 }
 
-function moveCheckbox() {
-  const maxOffset = 120
-  checkboxOffset.value = {
-    x: (Math.random() - 0.5) * maxOffset,
-    y: (Math.random() - 0.5) * 40,
+function moveBack() {
+  backOffset.value = {
+    x: (Math.random() - 0.5) * 160,
+    y: (Math.random() - 0.5) * 50,
   }
   setTimeout(() => {
-    checkboxOffset.value = { x: 0, y: 0 }
+    backOffset.value = { x: 0, y: 0 }
   }, 1500)
 }
 
+function openTermsDoc(key) {
+  termsModal.value = termsDocs[key]
+}
+
 function placeOrder() {
-  if (!termsAgreed.value && termsClickCount.value < 5) return
+  if (!termsAgreed.value) return
   currentStep.value = 3
   setTimeout(() => {
     if (successEl.value) {
